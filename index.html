@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#03060a" />
+  <meta name="description" content="Planet Forge â€” generate a seeded procedural 3D planet with terrain, clouds, atmosphere, and a starfield. Drag to orbit, zoom, and share the seed." />
+  <title>Planet Forge â€” Procedural Planet</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%2304070c'/%3E%3Ccircle cx='16' cy='16' r='7' fill='%238fd8ff'/%3E%3Cellipse cx='16' cy='16' rx='14' ry='5.5' fill='none' stroke='%23ffcf8a' stroke-width='1.6' transform='rotate(-18 16 16)'/%3E%3C/svg%3E" />
+  <link rel="stylesheet" href="style.css?v=65" />
+</head>
+<body>
+  <canvas id="scene" aria-label="Interactive 3D procedural planet. Drag to rotate, scroll to zoom, double-click to reset the view."></canvas>
+  <div class="atmo-glow" id="atmoGlow" aria-hidden="true"></div>
+  <div class="vignette" aria-hidden="true"></div>
+  <div class="grain" aria-hidden="true"></div>
+
+  <main class="ui">
+    <header class="topbar">
+      <a class="brand" href="./" aria-label="Planet Forge home">
+        <span class="brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 32 32" fill="none">
+            <circle cx="16" cy="16" r="6.5" fill="currentColor" />
+            <ellipse cx="16" cy="16" rx="14" ry="5.4" stroke="currentColor" stroke-width="1.4" transform="rotate(-18 16 16)" opacity=".72" />
+            <circle cx="27.6" cy="9.6" r="1.6" fill="currentColor" />
+          </svg>
+        </span>
+        <span class="brand-text">
+          <strong>PLANET FORGE</strong>
+          <small>PROCEDURAL WORLD ENGINE</small>
+        </span>
+      </a>
+
+      <div class="seed-panel" role="group" aria-label="Planet seed">
+        <label class="seed-label" for="seedInput">SEED</label>
+        <input id="seedInput" class="seed-input" type="text" value="ORION-7" maxlength="24" spellcheck="false" autocomplete="off" aria-label="Planet seed" />
+        <button id="randomBtn" class="generate-btn" type="button" title="Generate a new planet" aria-label="Generate a new planet">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <rect x="4" y="4" width="16" height="16" rx="4" />
+            <circle cx="9" cy="9" r="1.1" fill="currentColor" stroke="none" />
+            <circle cx="15" cy="9" r="1.1" fill="currentColor" stroke="none" />
+            <circle cx="9" cy="15" r="1.1" fill="currentColor" stroke="none" />
+            <circle cx="15" cy="15" r="1.1" fill="currentColor" stroke="none" />
+          </svg>
+          <span>Generate</span>
+        </button>
+      </div>
+    </header>
+
+    <div class="hud-left">
+      <div class="controls-hint" aria-hidden="true">
+        <span><b>Drag</b> orbit</span>
+        <span><b>Scroll</b> zoom</span>
+        <span><b>Double-click</b> reset</span>
+        <span><b>F</b> fullscreen</span>
+      </div>
+      <button id="resetViewBtn" class="ghost-btn" type="button">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M4 12a8 8 0 1 0 2.5-5.8" />
+          <path d="M4 4v5h5" />
+        </svg>
+        Reset view
+      </button>
+    </div>
+
+    <aside class="stats" aria-live="polite">
+      <div class="stats-head">
+        <span class="stats-title">WORLD SURVEY</span>
+        <span class="seed-tag" id="seedTag">ORION-7</span>
+      </div>
+      <div class="stat-grid">
+        <div class="stat"><span>CLASS</span><strong id="statClass">â€”</strong></div>
+        <div class="stat"><span>OCEAN</span><strong id="statOcean">â€”</strong></div>
+        <div class="stat"><span>CLOUDS</span><strong id="statClouds">â€”</strong></div>
+        <div class="stat"><span>ICE</span><strong id="statIce">â€”</strong></div>
+        <div class="stat"><span>MOONS</span><strong id="statMoons">â€”</strong></div>
+        <div class="stat"><span>RINGS</span><strong id="statRings">â€”</strong></div>
+      </div>
+      <p class="system-line" id="statSystem">â€”</p>
+      <button id="copyBtn" class="copy-btn" type="button">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M10 13a5 5 0 0 0 7.1 0l2-2a5 5 0 0 0-7.1-7.1l-1.1 1.1" />
+          <path d="M14 11a5 5 0 0 0-7.1 0l-2 2a5 5 0 0 0 7.1 7.1l1.1-1.1" />
+        </svg>
+        Copy share link
+      </button>
+      <div class="export-options">
+        <label class="option">
+          <input id="watermarkToggle" type="checkbox" checked />
+          <span>Watermark</span>
+        </label>
+        <label class="option" title="Higher resolution and bitrate">
+          <input id="hqToggle" type="checkbox" />
+          <span>HQ video</span>
+        </label>
+        <label class="option" title="Subtle drifting and twinkling stars">
+          <input id="starMotionToggle" type="checkbox" />
+          <span>Star motion</span>
+        </label>
+        <label class="option" title="Subtle shearing and shimmer in the rings">
+          <input id="ringMotionToggle" type="checkbox" />
+          <span>Ring motion</span>
+        </label>
+        <label class="option" title="Slow cinematic camera orbit and dolly">
+          <input id="autoOrbitToggle" type="checkbox" />
+          <span>Auto-orbit</span>
+        </label>
+        <label class="option" title="Export the image as a framed postcard">
+          <input id="postcardToggle" type="checkbox" />
+          <span>Postcard</span>
+        </label>
+      </div>
+      <div class="action-strip">
+        <button id="captureBtn" class="copy-btn" type="button" title="Capture image" aria-label="Capture image">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M4 8h3l1.5-2h7L17 8h3v11H4z" />
+            <circle cx="12" cy="13" r="3.2" />
+          </svg>
+          <span>Image</span>
+        </button>
+        <button id="recordBtn" class="copy-btn" type="button" title="Record scene video" aria-label="Record scene video" aria-pressed="false">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="12" cy="12" r="5" />
+          </svg>
+          <span id="recordLabel">Record</span>
+        </button>
+        <button id="fullscreenBtn" class="copy-btn" type="button" title="Enter fullscreen" aria-label="Enter fullscreen" aria-pressed="false">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M8 3H3v5M16 3h5v5M21 16v5h-5M8 21H3v-5" />
+          </svg>
+          <span id="fullscreenLabel">Full</span>
+        </button>
+      </div>
+    </aside>
+  </main>
+
+  <div class="loader" id="loader" aria-hidden="true">
+    <div class="loader-ring"><span></span></div>
+    <p class="loader-title" id="loaderTitle">Forging world</p>
+    <p class="loader-progress" id="loaderProgress">0%</p>
+  </div>
+
+  <div class="rec-badge" id="recBadge" hidden>
+    <span class="rec-badge-dot" aria-hidden="true"></span>
+    <span>REC</span>
+    <b id="recTime">00:00</b>
+  </div>
+
+  <div class="perf-dialog" id="perfDialog" hidden>
+    <div class="perf-backdrop" id="perfBackdrop"></div>
+    <div class="perf-card" role="dialog" aria-modal="true" aria-labelledby="perfTitle" aria-describedby="perfBody">
+      <div class="perf-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M13 2 5.5 13.5H11l-1 8.5 8-12H12z" />
+        </svg>
+      </div>
+      <p class="perf-eyebrow">Performance note</p>
+      <h2 class="perf-title" id="perfTitle">A little extra GPU</h2>
+      <p class="perf-body" id="perfBody">This option asks a bit more of your browser.</p>
+      <ul class="perf-chips" id="perfChips" hidden></ul>
+      <div class="perf-foot">
+        <label class="perf-remember">
+          <input id="perfDontAsk" type="checkbox" />
+          <span>Don't show again</span>
+        </label>
+        <button id="perfClose" class="perf-close" type="button">Got it</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script type="module" src="app.js?v=65"></script>
+</body>
+</html>
